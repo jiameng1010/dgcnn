@@ -8,6 +8,10 @@ Upadted by Yue Wang and Yongbin Sun
 
 import numpy as np
 import tensorflow as tf
+# added by jiameng
+import sys
+#sys.path.insert(0, '/home/mjia/Documents/jointSegmentation/PointSetGeneration/depthestimate')
+import tf_nndistance
 
 def _variable_on_cpu(name, shape, initializer, use_fp16=False, trainable=True):
   """Helper to create a Variable stored on CPU memory.
@@ -108,6 +112,19 @@ def conv1d(inputs,
     if activation_fn is not None:
       outputs = activation_fn(outputs)
     return outputs
+
+# added by jiameng
+def cloud_kernel_conv(inputs,
+                      num_output_channels,
+                      use_xavier=True,
+                      stddev=1e-3,
+                      weight_decay=0.0):
+    kernel_shape = [num_output_channels, inputs.get_shape()[-2].value, inputs.get_shape()[-2].value]
+    kernel = _variable_with_weight_decay('weights',
+                                         shape=kernel_shape,
+                                         use_xavier=use_xavier,
+                                         stddev=stddev,
+                                         wd=weight_decay)
 
 
 
@@ -703,4 +720,40 @@ def get_edge_feature(point_cloud, nn_idx, k=20):
   point_cloud_central = tf.tile(point_cloud_central, [1, 1, k, 1])
 
   edge_feature = tf.concat([point_cloud_central, point_cloud_neighbors-point_cloud_central], axis=-1)
+  return edge_feature
+
+
+# added by jiameng
+def get_edge_feature_without_concat(point_cloud, nn_idx, k=20):
+  """Construct edge feature for each point
+  Args:
+    point_cloud: (batch_size, num_points, 1, num_dims)
+    nn_idx: (batch_size, num_points, k)
+    k: int
+
+  Returns:
+    edge features: (batch_size, num_points, k, num_dims)
+  """
+  og_batch_size = point_cloud.get_shape().as_list()[0]
+  point_cloud = tf.squeeze(point_cloud)
+  if og_batch_size == 1:
+    point_cloud = tf.expand_dims(point_cloud, 0)
+
+  point_cloud_central = point_cloud
+
+  point_cloud_shape = point_cloud.get_shape()
+  batch_size = point_cloud_shape[0].value
+  num_points = point_cloud_shape[1].value
+  num_dims = point_cloud_shape[2].value
+
+  idx_ = tf.range(batch_size) * num_points
+  idx_ = tf.reshape(idx_, [batch_size, 1, 1])
+
+  point_cloud_flat = tf.reshape(point_cloud, [-1, num_dims])
+  point_cloud_neighbors = tf.gather(point_cloud_flat, nn_idx+idx_)
+  point_cloud_central = tf.expand_dims(point_cloud_central, axis=-2)
+
+  point_cloud_central = tf.tile(point_cloud_central, [1, 1, k, 1])
+
+  edge_feature = point_cloud_neighbors-point_cloud_central
   return edge_feature

@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 # added by jiameng
 import sys
-#sys.path.insert(0, '/home/mjia/Documents/jointSegmentation/PointSetGeneration/depthestimate')
+sys.path.insert(0, '/home/mjia/Documents/jointSegmentation/PointSetGeneration/depthestimate')
 import tf_nndistance
 
 def _variable_on_cpu(name, shape, initializer, use_fp16=False, trainable=True):
@@ -116,15 +116,17 @@ def conv1d(inputs,
 # added by jiameng
 def cloud_kernel_conv(inputs,
                       num_output_channels,
+                      kernel_size=30,
                       use_xavier=True,
                       stddev=1e-3,
                       weight_decay=0.0):
-    kernel_shape = [num_output_channels, inputs.get_shape()[-2].value, inputs.get_shape()[-2].value]
+    kernel_shape = [num_output_channels, kernel_size, inputs.get_shape()[-1].value]
     kernel = _variable_with_weight_decay('weights',
                                          shape=kernel_shape,
                                          use_xavier=use_xavier,
                                          stddev=stddev,
                                          wd=weight_decay)
+
 
 
 
